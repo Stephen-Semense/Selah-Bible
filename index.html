@@ -161,21 +161,53 @@
             NT: [["Matthew", 28], ["Mark", 16], ["Luke", 24], ["John", 21], ["Acts", 28], ["Romans", 16], ["1 Corinthians", 16], ["2 Corinthians", 13], ["Galatians", 6], ["Ephesians", 6], ["Philippians", 4], ["Colossians", 4], ["1 Thessalonians", 5], ["2 Thessalonians", 3], ["1 Timothy", 6], ["2 Timothy", 4], ["Titus", 3], ["Philemon", 1], ["Hebrews", 13], ["James", 5], ["1 Peter", 5], ["2 Peter", 3], ["1 John", 5], ["2 John", 1], ["3 John", 1], ["Jude", 1], ["Revelation", 22]]
         };
 
-        // NEW: Advanced Contextual Logic to mimic the "Key Aspects" image style
-        const studyDatabase = {
-            concepts: [
-                { title: "Divine Authority", text: "This verse signifies the absolute sovereignty of God over physical and spiritual laws." },
-                { title: "Structuring the World", text: "Like the 'Raqiya' (expanse), this moment creates space for life to exist between two extremes." },
-                { title: "The Power of Naming", text: "Naming designates purpose. By identifying this element, God defines its function in the universe." },
-                { title: "Rhythmic Order", text: "The repetition of 'Evening and Morning' establishes the predictable, reliable nature of creation." },
-                { title: "Context within the Week", text: "This step prepares the environment for future life, showing that God works in stages." }
-            ],
-            deepMeanings: [
-                "It explores the idea that every challenge is actually a hidden opportunity for growth and character building.",
-                "True wealth is not found in what we own, but in the peace we provide to others.",
-                "This passage highlights that even in silence, there is a profound presence guiding your steps.",
-                "Love acts as the foundation for all human interaction, bridging the gap between hearts."
-            ]
+        // NEW: Semantic Library for word-by-word contextual generation
+        const semanticLibrary = {
+            "light": {
+                aspect1: { title: "Divine Illumination", text: "Light represents God's presence, truth, and moral purity breaking into darkness." },
+                aspect2: { title: "Guidance", text: "It serves as a metaphor for divine direction, showing the clear path amidst confusion." },
+                deep: "Just as physical light reveals our surroundings, spiritual light exposes truth and gives us the clarity to move forward with confidence."
+            },
+            "love": {
+                aspect1: { title: "Agape", text: "This refers to unconditional, self-sacrificing love that originates from the divine nature." },
+                aspect2: { title: "Relational Bond", text: "Love acts as the perfect bond of unity, bridging the gap between humanity and the Creator." },
+                deep: "Love is not merely an emotion, but an action and a choice to seek the highest good for others, reflecting the very heart of God."
+            },
+            "word": {
+                aspect1: { title: "Creative Power", text: "The 'Word' signifies the mechanism by which the universe was spoken into existence." },
+                aspect2: { title: "Ultimate Truth", text: "It represents the foundational truth and the ultimate revelation of the divine will." },
+                deep: "The Word is an active, living force that has the power to transform reality and reshape our understanding of life."
+            },
+            "lamp": {
+                aspect1: { title: "Immediate Guidance", text: "A lamp provides just enough light for the very next step, requiring daily trust." },
+                aspect2: { title: "Comfort in Darkness", text: "It signifies warmth and safety when surrounded by the unknown." },
+                deep: "We aren't promised to see the entire horizon at once; rather, we are given enough light to faithfully take the next right step."
+            },
+            "faith": {
+                aspect1: { title: "Substance of Hope", text: "Faith is the confident expectation and the tangible assurance of things unseen." },
+                aspect2: { title: "Active Trust", text: "It goes beyond belief, manifesting as action based on divine promises." },
+                deep: "Faith bridges the gap between our current reality and the ultimate promises of eternity, anchoring our soul."
+            },
+            "grace": {
+                aspect1: { title: "Unmerited Favor", text: "Grace is a gift given not because it is earned, but out of absolute generosity." },
+                aspect2: { title: "Transformative Power", text: "It empowers the recipient to live beyond their natural capacity." },
+                deep: "Grace rewrites our story, replacing the weight of our shortcomings with the freedom of divine acceptance."
+            },
+            "water": {
+                aspect1: { title: "Purification", text: "Water is a deeply symbolic element representing cleansing and spiritual renewal." },
+                aspect2: { title: "Sustenance", text: "It points to the life-giving nature of God, quenching the ultimate thirst of the soul." },
+                deep: "Just as water restores parched ground, this truth revives the exhausted spirit and brings forth new growth."
+            },
+            "heart": {
+                aspect1: { title: "The Core of Being", text: "The heart represents the center of human will, emotion, and intellect." },
+                aspect2: { title: "Inner Transformation", text: "It points to the reality that true change happens from the inside out." },
+                deep: "Outward actions are merely echoes; the true battleground of life and faith is fought within the sanctuary of the heart."
+            },
+            "peace": {
+                aspect1: { title: "Shalom", text: "Peace here means wholeness, completeness, and the absence of inner turmoil." },
+                aspect2: { title: "Divine Stillness", text: "It is a supernatural calm that defies external circumstances." },
+                deep: "True peace is not the absence of storms, but the presence of an anchor that holds fast no matter how hard the wind blows."
+            }
         };
 
         let state = { book: "John", chapter: 1, maxChapters: 21, currentVerses: [], lastVersePlayedIndex: 0 };
@@ -283,14 +315,48 @@
             }
         }
 
-        // UPDATED: Logic to provide "Deep Meaning" in a structured "Key Aspects" format
-        function generateExpandedExplanation(book, chap, v) {
-            const seed = (book.length * 41) + (chap * 17) + (v * 7);
-            const getIdx = (arr) => seed % arr.length;
+        // UPDATED: Dynamic Word-By-Word Content Generator
+        function generateExpandedExplanation(book, chap, v, verseText) {
+            const lowerText = verseText.toLowerCase();
+            let foundThemes = [];
             
-            const aspect1 = studyDatabase.concepts[getIdx(studyDatabase.concepts)];
-            const aspect2 = studyDatabase.concepts[(seed + 1) % studyDatabase.concepts.length];
-            const deepVal = studyDatabase.deepMeanings[getIdx(studyDatabase.deepMeanings)];
+            // Scan the verse for keywords
+            Object.keys(semanticLibrary).forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                if (regex.test(lowerText)) {
+                    foundThemes.push(semanticLibrary[keyword]);
+                }
+            });
+
+            let aspect1, aspect2, deepVal;
+
+            // Assemble the insights based on found words
+            if (foundThemes.length >= 2) {
+                aspect1 = foundThemes[0].aspect1;
+                aspect2 = foundThemes[1].aspect2; // Mix themes if multiple words found
+                deepVal = foundThemes[0].deep;
+            } else if (foundThemes.length === 1) {
+                aspect1 = foundThemes[0].aspect1;
+                aspect2 = foundThemes[0].aspect2;
+                deepVal = foundThemes[0].deep;
+            } else {
+                // Fallback: General theological insight if no specific keywords match
+                const seed = (book.length * 41) + (chap * 17) + (v * 7);
+                const generalAspects = [
+                    { title: "Historical Context", text: "This passage connects deeply to the cultural and historical realities of its time." },
+                    { title: "Personal Reflection", text: "The words challenge the reader to internalize these ancient truths in a modern context." },
+                    { title: "Divine Authority", text: "This verse signifies absolute sovereignty and authority over all creation." },
+                    { title: "Enduring Promise", text: "It serves as a reminder of promises that transcend generations." }
+                ];
+                const generalDeep = [
+                    "Even in seemingly mundane passages, there is a profound invitation to trust in a higher purpose.",
+                    "True wisdom is found in meditating on these words and applying their timeless principles daily.",
+                    "This verse invites us to consider the timeless nature of divine wisdom in our daily walk."
+                ];
+                aspect1 = generalAspects[seed % generalAspects.length];
+                aspect2 = generalAspects[(seed + 1) % generalAspects.length];
+                deepVal = generalDeep[seed % generalDeep.length];
+            }
 
             const fullTextForSpeech = `Deep Insight for ${book} chapter ${chap} verse ${v}. Aspect one: ${aspect1.title}. ${aspect1.text}. Aspect two: ${aspect2.title}. ${aspect2.text}. Overall meaning: ${deepVal}`;
 
@@ -325,12 +391,24 @@
             return { html, text: fullTextForSpeech };
         }
 
+        // Updated to pass the actual verse text into the generator
         function toggleInsight(panelId, book, chap, v) {
             const panel = document.getElementById(panelId);
             const isOpen = panel.classList.contains('open');
             document.querySelectorAll('.insight-panel').forEach(p => p.classList.remove('open'));
+            
             if (!isOpen) { 
-                panel.innerHTML = generateExpandedExplanation(book, chap, v).html; 
+                let textToAnalyze = "";
+                if (panelId === 'votd-insight') {
+                    // Extract text for Verse of the Day
+                    textToAnalyze = document.getElementById('votdText').innerText;
+                } else {
+                    // Extract text from loaded chapter verses
+                    const verseData = state.currentVerses.find(vs => vs.verse == v);
+                    if (verseData) textToAnalyze = verseData.text;
+                }
+
+                panel.innerHTML = generateExpandedExplanation(book, chap, v, textToAnalyze).html; 
                 panel.classList.add('open'); 
             }
         }

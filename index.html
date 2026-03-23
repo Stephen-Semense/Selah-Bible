@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selah Bible | Expanded Explanations</title>
+    <title>Selah Bible | Complete Navigation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>tailwind.config = { darkMode: 'class' }</script>
@@ -90,6 +90,17 @@
             </div>
 
             <div id="readerView" class="hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <button onclick="navChapter(-1)" class="p-3 glass-card rounded-xl hover:bg-indigo-500 hover:text-white transition-all">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <select id="chapterJumpDropdown" onchange="jumpToChapter(this.value)" class="glass-card px-4 py-2 rounded-xl text-xs font-black uppercase outline-none bg-transparent">
+                        </select>
+                    <button onclick="navChapter(1)" class="p-3 glass-card rounded-xl hover:bg-indigo-500 hover:text-white transition-all">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b dark:border-slate-800 pb-4 gap-4">
                     <div>
                         <h2 id="readerTitle" class="text-3xl md:text-4xl font-serif font-bold"></h2>
@@ -113,7 +124,19 @@
                         </div>
                     </div>
                 </div>
-                <div id="verseList" class="reading-text space-y-12 pb-20"></div>
+
+                <div id="verseList" class="reading-text space-y-12 pb-10"></div>
+
+                <div class="flex items-center justify-between mt-10 pb-20 border-t dark:border-slate-800 pt-8">
+                    <button onclick="navChapter(-1)" class="flex items-center gap-3 px-6 py-4 glass-card rounded-2xl hover:bg-indigo-500 hover:text-white transition-all group">
+                        <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                        <div class="text-left"><p class="text-[10px] uppercase opacity-50 font-bold">Previous</p><p class="text-sm font-bold">Chapter</p></div>
+                    </button>
+                    <button onclick="navChapter(1)" class="flex items-center gap-3 px-6 py-4 glass-card rounded-2xl hover:bg-indigo-500 hover:text-white transition-all group">
+                        <div class="text-right"><p class="text-[10px] uppercase opacity-50 font-bold">Next</p><p class="text-sm font-bold">Chapter</p></div>
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -126,20 +149,8 @@
 
         const expParts = {
             values: ["Integrity", "Sacrifice", "Kindness", "Perseverance", "Humility", "Faith", "Wisdom", "Grace", "Strength", "Inner Peace"],
-            deeply: [
-                "This verse deepens our understanding of how love acts as a foundation for all human interaction.",
-                "It serves as a powerful reminder that even in silence, there is a profound divine presence guiding your steps.",
-                "This passage highlights that true wealth is not found in what we own, but in the peace we provide to others.",
-                "It explores the idea that every challenge is actually a hidden opportunity for growth and character building.",
-                "This focuses on the core truth that we are never truly alone, especially when facing life's greatest storms."
-            ],
-            reflection: [
-                "Think about one area of your life where you can apply this today. Is there someone who needs your patience?",
-                "Reflect on your current worries. How does this verse offer you a different way to look at those burdens?",
-                "Take a moment to breathe and let this message sink into your heart. It calls for a change in how we see ourselves.",
-                "Ask yourself: How would my day change if I truly believed this value was active in my life right now?",
-                "Consider how this ancient wisdom provides a simple, clear solution to a modern problem you are facing."
-            ]
+            deeply: ["This verse deepens our understanding of how love acts as a foundation for all human interaction.","It serves as a powerful reminder that even in silence, there is a profound divine presence guiding your steps.","This passage highlights that true wealth is not found in what we own, but in the peace we provide to others.","It explores the idea that every challenge is actually a hidden opportunity for growth and character building.","This focuses on the core truth that we are never truly alone, especially when facing life's greatest storms."],
+            reflection: ["Think about one area of your life where you can apply this today. Is there someone who needs your patience?","Reflect on your current worries. How does this verse offer you a different way to look at those burdens?","Take a moment to breathe and let this message sink into your heart. It calls for a change in how we see ourselves.","Ask yourself: How would my day change if I truly believed this value was active in my life right now?","Consider how this ancient wisdom provides a simple, clear solution to a modern problem you are facing."]
         };
 
         let state = { book: "John", chapter: 1, maxChapters: 21, currentVerses: [], lastVersePlayedIndex: 0 };
@@ -150,7 +161,6 @@
 
         function init() { renderLibrary(); renderHistory(); fetchVOTD(); applyTheme(localStorage.getItem('theme') === 'dark'); }
 
-        // AUDIO TOGGLE ENGINE
         function stopAudio() { 
             synth.cancel(); isReadingAll = false;
             if(currentPlayingBtnId) {
@@ -194,34 +204,13 @@
             if(isReadingAll) { state.lastVersePlayedIndex = 0; stopAudio(); }
         }
 
-        // EXPANDED RANDOMIZED EXPLANATION
         function generateExpandedExplanation(book, chap, v) {
             const seed = (book.length * 47) + (chap * 23) + (v * 11);
             const get = (arr, offset = 0) => arr[(seed + offset) % arr.length];
-            
-            const coreValue = get(expParts.values);
-            const deepMeaning = get(expParts.deeply, 2);
-            const personalReflection = get(expParts.reflection, 4);
-            
-            const fullContent = `Explanation: This verse emphasizes the core value of ${coreValue}. ${deepMeaning} It reflects on the person by asking: ${personalReflection}`;
-
+            const fullContent = `Explanation: This verse emphasizes ${get(expParts.values)}. ${get(expParts.deeply, 2)} Ask yourself: ${get(expParts.reflection, 4)}`;
             return {
                 text: fullContent,
-                html: `
-                <div class="space-y-5">
-                    <div class="flex justify-between items-start gap-4">
-                        <div class="flex-grow">
-                            <span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Explanation:</span>
-                            <p class="text-base text-slate-700 dark:text-slate-300 mt-2 leading-relaxed font-semibold">
-                                ${fullContent}
-                            </p>
-                        </div>
-                        <button id="btn-audio-ex-${v}" onclick="toggleExplanationAudio('${fullContent.replace(/'/g, "\\'")}', 'btn-audio-ex-${v}')" 
-                            class="text-indigo-500 w-12 h-12 flex items-center justify-center bg-indigo-500/10 rounded-2xl transition-all hover:bg-indigo-500 hover:text-white">
-                            <i class="fas fa-volume-up text-lg"></i>
-                        </button>
-                    </div>
-                </div>`
+                html: `<div class="space-y-5"><div class="flex justify-between items-start gap-4"><div class="flex-grow"><span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Explanation:</span><p class="text-base text-slate-700 dark:text-slate-300 mt-2 leading-relaxed font-semibold">${fullContent}</p></div><button id="btn-audio-ex-${v}" onclick="toggleExplanationAudio('${fullContent.replace(/'/g, "\\'")}', 'btn-audio-ex-${v}')" class="text-indigo-500 w-12 h-12 flex items-center justify-center bg-indigo-500/10 rounded-2xl hover:bg-indigo-500 hover:text-white transition-all"><i class="fas fa-volume-up text-lg"></i></button></div></div>`
             };
         }
 
@@ -229,32 +218,53 @@
             const panel = document.getElementById(panelId);
             const isOpen = panel.classList.contains('open');
             document.querySelectorAll('.insight-panel').forEach(p => p.classList.remove('open'));
-            if (!isOpen) { 
-                panel.innerHTML = generateExpandedExplanation(book, chap, v).html; 
-                panel.classList.add('open'); 
-            }
+            if (!isOpen) { panel.innerHTML = generateExpandedExplanation(book, chap, v).html; panel.classList.add('open'); }
         }
 
         async function fetchChapter() {
             stopAudio(); state.lastVersePlayedIndex = 0;
             showView('reader'); saveHistory();
+            updateChapterJumpDropdown();
             document.getElementById('progressContainer').classList.remove('hidden');
             const list = document.getElementById('verseList');
             list.innerHTML = '<p class="text-center py-20 animate-pulse text-indigo-500 font-bold text-lg">Opening the Word...</p>';
-            const res = await fetch(`https://bible-api.com/${state.book}+${state.chapter}`);
-            const data = await res.json();
-            state.currentVerses = data.verses;
-            document.getElementById('readerTitle').innerText = data.reference;
-            const dropdown = document.getElementById('verseDropdown');
-            dropdown.innerHTML = '<option value="">Jump Verse</option>';
-            list.innerHTML = '';
-            data.verses.forEach(v => {
-                const opt = document.createElement('option'); opt.value = `v-${v.verse}`; opt.innerText = `Verse ${v.verse}`; dropdown.appendChild(opt);
-                const div = document.createElement('div'); div.id = `v-${v.verse}`; div.className = "p-4 transition-all duration-500 border-b border-slate-100 dark:border-slate-800/50 pb-8";
-                div.innerHTML = `<div class="flex justify-between items-start gap-4"><div class="flex gap-4"><span class="text-indigo-400 font-bold text-sm mt-1">${v.verse}</span><p class="text-xl md:text-2xl leading-relaxed">${v.text}</p></div><button onclick="toggleInsight('insight-${v.verse}', '${state.book}', ${state.chapter}, ${v.verse})" class="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all flex-shrink-0"><i class="fas fa-lightbulb"></i></button></div><div id="insight-${v.verse}" class="insight-panel bg-white/40 dark:bg-slate-900/40 rounded-3xl p-6 mt-4"></div>`;
-                list.appendChild(div);
-            });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            try {
+                const res = await fetch(`https://bible-api.com/${state.book}+${state.chapter}`);
+                const data = await res.json();
+                state.currentVerses = data.verses;
+                document.getElementById('readerTitle').innerText = data.reference;
+                const dropdown = document.getElementById('verseDropdown');
+                dropdown.innerHTML = '<option value="">Jump Verse</option>';
+                list.innerHTML = '';
+                data.verses.forEach(v => {
+                    const opt = document.createElement('option'); opt.value = `v-${v.verse}`; opt.innerText = `Verse ${v.verse}`; dropdown.appendChild(opt);
+                    const div = document.createElement('div'); div.id = `v-${v.verse}`; div.className = "p-4 transition-all duration-500 border-b border-slate-100 dark:border-slate-800/50 pb-8";
+                    div.innerHTML = `<div class="flex justify-between items-start gap-4"><div class="flex gap-4"><span class="text-indigo-400 font-bold text-sm mt-1">${v.verse}</span><p class="text-xl md:text-2xl leading-relaxed">${v.text}</p></div><button onclick="toggleInsight('insight-${v.verse}', '${state.book}', ${state.chapter}, ${v.verse})" class="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all flex-shrink-0"><i class="fas fa-lightbulb"></i></button></div><div id="insight-${v.verse}" class="insight-panel bg-white/40 dark:bg-slate-900/40 rounded-3xl p-6 mt-4"></div>`;
+                    list.appendChild(div);
+                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) { list.innerHTML = 'Error loading chapter.'; }
+        }
+
+        function updateChapterJumpDropdown() {
+            const dropdown = document.getElementById('chapterJumpDropdown');
+            dropdown.innerHTML = '';
+            for(let i=1; i<=state.maxChapters; i++) {
+                const opt = document.createElement('option');
+                opt.value = i; opt.innerText = `Ch. ${i}`;
+                if(i === state.chapter) opt.selected = true;
+                dropdown.appendChild(opt);
+            }
+        }
+
+        function jumpToChapter(val) { state.chapter = parseInt(val); fetchChapter(); }
+
+        function navChapter(dir) {
+            let nextChap = state.chapter + dir;
+            if (nextChap >= 1 && nextChap <= state.maxChapters) {
+                state.chapter = nextChap;
+                fetchChapter();
+            }
         }
 
         function renderLibrary() {
@@ -289,13 +299,9 @@
             document.getElementById('historySection').classList.remove('hidden');
             grid.innerHTML = history.map(item => {
                 const radius = 15; const circ = 2 * Math.PI * radius;
-                return `<button onclick="state.book='${item.book}'; state.chapter=${item.chapter}; fetchChapter()" class="flex-shrink-0 w-44 p-4 glass-card rounded-3xl text-left flex items-center gap-3">
-                    <div class="relative w-10 h-10">
-                        <svg class="w-full h-full"><circle class="text-slate-200 dark:text-slate-800" stroke-width="3" stroke="currentColor" fill="transparent" r="${radius}" cx="20" cy="20"/><circle class="text-indigo-500 progress-ring__circle" stroke-width="3" stroke-dasharray="${circ} ${circ}" stroke-dashoffset="${circ}" data-percent="${item.percent}" stroke-linecap="round" stroke="currentColor" fill="transparent" r="${radius}" cx="20" cy="20"/></svg>
-                        <span class="absolute inset-0 flex items-center justify-center text-[8px] font-black">${item.percent}%</span>
-                    </div>
-                    <div class="overflow-hidden"><p class="text-[10px] font-bold text-indigo-500 uppercase truncate mb-1">${item.book}</p><p class="text-xs font-black">Ch. ${item.chapter}</p></div>
-                </button>`;
+                return `<button onclick="state.book='${item.book}'; state.chapter=${item.chapter}; state.maxChapters=${findMax(item.book)}; fetchChapter()" class="flex-shrink-0 w-44 p-4 glass-card rounded-3xl text-left flex items-center gap-3">
+                    <div class="relative w-10 h-10"><svg class="w-full h-full"><circle class="text-slate-200 dark:text-slate-800" stroke-width="3" stroke="currentColor" fill="transparent" r="${radius}" cx="20" cy="20"/><circle class="text-indigo-500 progress-ring__circle" stroke-width="3" stroke-dasharray="${circ} ${circ}" stroke-dashoffset="${circ}" data-percent="${item.percent}" stroke-linecap="round" stroke="currentColor" fill="transparent" r="${radius}" cx="20" cy="20"/></svg><span class="absolute inset-0 flex items-center justify-center text-[8px] font-black">${item.percent}%</span></div>
+                    <div class="overflow-hidden"><p class="text-[10px] font-bold text-indigo-500 uppercase truncate mb-1">${item.book}</p><p class="text-xs font-black">Ch. ${item.chapter}</p></div></button>`;
             }).join('');
             requestAnimationFrame(() => {
                 document.querySelectorAll('.progress-ring__circle').forEach(c => {
@@ -303,6 +309,12 @@
                     c.style.strokeDashoffset = circ - (p / 100 * circ);
                 });
             });
+        }
+
+        function findMax(name) {
+            const all = [...BIBLE_BOOKS.OT, ...BIBLE_BOOKS.NT];
+            const book = all.find(b => b[0] === name);
+            return book ? book[1] : 50;
         }
 
         function saveHistory() {
@@ -314,7 +326,7 @@
         }
 
         async function fetchVOTD() { try { const res = await fetch(`https://bible-api.com/Psalm+119:105`); const data = await res.json(); document.getElementById('votdText').innerText = `"${data.text.trim()}"`; } catch (e) {} }
-        async function handleSearch(val) { const res = await fetch(`https://bible-api.com/${val}`); const data = await res.json(); if(data.verses) { state.book = data.verses[0].book_name; state.chapter = data.verses[0].chapter; fetchChapter(); } }
+        async function handleSearch(val) { const res = await fetch(`https://bible-api.com/${val}`); const data = await res.json(); if(data.verses) { state.book = data.verses[0].book_name; state.chapter = data.verses[0].chapter; state.maxChapters = findMax(state.book); fetchChapter(); } }
         function resetToLibrary() { stopAudio(); showView('library'); document.getElementById('selectionFlow').classList.add('hidden'); document.getElementById('progressContainer').classList.add('hidden'); }
         function showView(v) { ['library', 'selection', 'reader'].forEach(id => document.getElementById(id + 'View').classList.add('hidden')); document.getElementById(v + 'View').classList.remove('hidden'); }
         function updateSteps(s) { document.getElementById('selectionFlow').classList.remove('hidden'); document.querySelectorAll('.step-pill').forEach((p, i) => p.classList.toggle('active', i + 1 === s)); }
@@ -322,7 +334,6 @@
         function applyTheme(d) { document.documentElement.classList.toggle('dark', d); document.getElementById('themeIcon').className = d ? 'fas fa-sun text-amber-400' : 'fas fa-moon text-slate-500'; }
         function openVotd() { state.book="Psalms"; state.chapter=119; state.maxChapters=150; fetchChapter(); }
         function jumpToVerse(id) { const el = document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth', block:'center'}); }
-        function navChapter(dir) { if (state.chapter + dir >= 1 && state.chapter + dir <= state.maxChapters) { state.chapter += dir; fetchChapter(); } }
 
         init();
     </script>

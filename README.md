@@ -48,17 +48,6 @@ The dashboard features **Progress Rings** that save your reading percentage loca
 
 ---
 
-## 🚀 One-Click Deployment
-
-Selah is a **Single-File Application**, making it incredibly lightweight and easy to host:
-
-1. **Fork** this repository.
-2. Go to **Settings > Pages**.
-3. Set the source to the **Main branch** and click **Save**.
-4. Your personal sanctuary is live at your GitHub URL.
-
----
-
 ## 🔒 Privacy & Speed
 Selah is **Serverless**. All history, progress, and settings are stored locally on **your** device (LocalStorage). There are no accounts, no tracking, and no data collection—just a private space for you and the Word.
 

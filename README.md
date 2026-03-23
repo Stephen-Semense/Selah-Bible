@@ -1,6 +1,6 @@
 # 📖 SELAH | The Personal Sanctuary Bible
 
-LINK: 
+#LINK: https://stephen-semense.github.io/Selah-Bible/
 
 **Selah** [סֶלָה] is a modern, distraction-free Bible web experience designed for deep meditation, daily reflection, and audio-visual study. Unlike traditional Bible apps, Selah is built to help **people** not just read the Word, but internalize its core values through an AI-inspired explanation engine.
 

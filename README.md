@@ -17,7 +17,7 @@ In a world of surface-level reading, Selah provides the tools for a deep dive:
 ---
 
 ## 🤖 Selah AI Explanation Module
-The AI Explanation Module is the core "Deep Insight" feature of the Selah Bible. It transforms raw scripture into a modern, conversational study guide by providing contextually aware insights and quick-sharing tools.
+The AI Explanation Module is the core "Deep Insight" feature of the Selah Bible. It transforms raw scripture into a modern, conversational study guide by providing contextually aware insights and quick-sharing tools. The explanations now match the AI-generated style, with the verse reference hyperlinked, key concepts highlighted with a subtle background, and a flowing narrative explanation that helps readers understand the spiritual significance of each verse.
 
 ### ✨ Features at a Glance
 * **Smart Parsing:** Automatically identifies the Book, Chapter, and Verse to pull specific theological data.

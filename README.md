@@ -16,14 +16,15 @@ In a world of surface-level reading, Selah provides the tools for a deep dive:
 
 ---
 
-## ✨ Feature Deep-Dive
+## 🤖 Selah AI Explanation Module
+The AI Explanation Module is the core "Deep Insight" feature of the Selah Bible. It transforms raw scripture into a modern, conversational study guide by providing contextually aware insights and quick-sharing tools.
 
-### 🧠 New: Structured "Key Aspects" Engine
-Inspired by professional study guides, every verse now features an expandable **Deep Insight** panel:
-* **Linguistic Breakdown:** Understand terms like *Raqiya* (Expanse) and *Šāmayim* (Sky).
-* **The Power of Naming:** See how God designates purpose and authority through titles.
-* **Contextual Analysis:** Learn how a specific day or verse fits into the broader "Rhythmic Order" of the Bible.
-* **Deep Meaning Summary:** A modern, italicized reflection to help you apply ancient wisdom to today's challenges.
+### ✨ Features at a Glance
+* **Smart Parsing:** Automatically identifies the Book, Chapter, and Verse to pull specific theological data.
+* **Key Concept Highlighting:** Visually isolates important themes (e.g., Creation, Faith, Grace) using the .key-concept styling.
+* **Quick Copy shortly:** A dedicated "Copy" button that sanitizes the AI output for immediate sharing.
+* **Synchronized Narration:** Integrated TTS that reads the explanation aloud with adjustable playback speeds.
+* **Dynamic Fallback:** Uses a date-seeded randomization logic to provide consistent, meaningful insights for verses not yet in the primary database.
 
 ### 🎧 Professional Audio Suite
 * **Multi-Layered Speech:** Listen to the scripture text or toggle audio for the **Expanded Explanations** separately.

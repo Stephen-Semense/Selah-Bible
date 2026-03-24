@@ -34,6 +34,10 @@
         .key-concept { background: rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 4px; font-weight: 500; }
         .explanation-text { line-height: 1.8; color: #334155; }
         .dark .explanation-text { color: #cbd5e1; }
+        
+        /* Audio button states */
+        .audio-btn-playing { color: #6366f1; animation: pulse 1.5s infinite; }
+        .audio-btn-loading { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -276,6 +280,8 @@
         let isReadingAll = false;
         let currentPlayingBtnId = null;
         let wakeLock = null;
+        let voices = [];
+        let audioInitialized = false;
 
         // --- NEW: DATE DETECTION FOR VOTD ---
         function getDailyVerseRef() {
@@ -283,6 +289,31 @@
             const dateSeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
             const index = dateSeed % VOTD_POOL.length;
             return VOTD_POOL[index];
+        }
+
+        // --- FIXED: Initialize voices properly ---
+        function loadVoices() {
+            voices = synth.getVoices();
+            if (voices.length === 0) {
+                // Voices load asynchronously, wait for them
+                synth.onvoiceschanged = () => {
+                    voices = synth.getVoices();
+                };
+            }
+        }
+
+        // --- FIXED: Initialize audio on first user interaction ---
+        function initAudio() {
+            if (audioInitialized) return;
+            
+            // Cancel any pending speech to unlock the synthesis engine
+            synth.cancel();
+            
+            // Load voices
+            loadVoices();
+            
+            audioInitialized = true;
+            console.log('Audio initialized');
         }
 
         async function fetchVOTD() {
@@ -332,6 +363,10 @@
             fetchVOTD(); 
             applyTheme(localStorage.getItem('theme') === 'dark'); 
 
+            // Add global click listener to initialize audio on first interaction
+            document.addEventListener('click', initAudio, { once: true });
+            document.addEventListener('touchstart', initAudio, { once: true });
+
             const hash = window.location.hash.replace('#', '');
             if (hash) {
                 const parts = hash.split('-');
@@ -358,8 +393,11 @@
             synth.cancel(); isReadingAll = false;
             if(wakeLock !== null) { try { wakeLock.release(); } catch(e){} wakeLock = null; }
             if(currentPlayingBtnId) {
-                const btnIcon = document.querySelector(`#${currentPlayingBtnId} i`);
-                if(btnIcon) btnIcon.className = "fas fa-volume-up";
+                const btn = document.getElementById(currentPlayingBtnId);
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+                    btn.classList.remove('audio-btn-playing');
+                }
                 currentPlayingBtnId = null;
             }
             document.querySelectorAll('.audio-playing-row').forEach(el => el.classList.remove('audio-playing-row')); 
@@ -377,6 +415,9 @@
         }
 
         async function readFullChapter() {
+            // Initialize audio if not already done
+            initAudio();
+            
             stopAudio(); 
             isReadingAll = true;
             await requestWakeLock();
@@ -397,10 +438,31 @@
                     vEl.scrollIntoView({behavior:'smooth', block:'center'});
                     vEl.classList.add('audio-playing-row');
                 }
+                
+                // FIXED: Ensure synth is ready and cancel before speaking
+                synth.cancel();
+                
                 const utter = new SpeechSynthesisUtterance(`Verse ${v.verse}. ${v.text}`);
-                utter.rate = parseFloat(document.getElementById('audioSpeed').value) || 1.0;
+                utter.rate = Math.min(parseFloat(document.getElementById('audioSpeed').value) || 1.0, 2.0); // Cap at 2.0 for Chrome
+                
+                // Try to use a good English voice if available
+                if (voices.length > 0) {
+                    const preferredVoice = voices.find(voice => voice.lang.startsWith('en') && voice.name.includes('Google')) 
+                        || voices.find(voice => voice.lang.startsWith('en')) 
+                        || voices[0];
+                    utter.voice = preferredVoice;
+                }
+                
                 await new Promise(res => { 
-                    utter.onend = () => { if(vEl) vEl.classList.remove('audio-playing-row'); res(); }; 
+                    utter.onend = () => { 
+                        if(vEl) vEl.classList.remove('audio-playing-row'); 
+                        res(); 
+                    }; 
+                    utter.onerror = (e) => {
+                        console.error('Speech error:', e);
+                        if(vEl) vEl.classList.remove('audio-playing-row');
+                        res();
+                    };
                     synth.speak(utter); 
                 });
             }
@@ -444,8 +506,8 @@
                 <div class="space-y-4">
                     <div class="flex justify-between items-center border-b border-indigo-100 dark:border-indigo-900/30 pb-3">
                         <h3 class="text-xs font-black text-indigo-500 uppercase tracking-widest">AI Explanation</h3>
-                        <button id="btn-audio-ex-${v}" onclick="toggleExplanationAudio('${fullText.replace(/'/g, "\\'")}', 'btn-audio-ex-${v}')" class="text-indigo-500 hover:text-indigo-600 transition-colors text-xs flex items-center gap-2">
-                            <i class="fas fa-volume-up"></i> Listen
+                        <button id="btn-audio-ex-${v}" onclick="toggleExplanationAudio('${fullText.replace(/'/g, "\\'")}', 'btn-audio-ex-${v}')" class="text-indigo-500 hover:text-indigo-600 transition-colors text-xs flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20">
+                            <i class="fas fa-volume-up"></i> <span>Listen</span>
                         </button>
                     </div>
                     <div class="explanation-text text-base leading-relaxed">
@@ -459,169 +521,358 @@
             return { html, fullText };
         }
 
+        // FIXED: Complete toggleExplanationAudio function with proper error handling
         function toggleExplanationAudio(text, btnId) {
-            if (currentPlayingBtnId === btnId) { stopAudio(); return; }
+            // Initialize audio on first use
+            initAudio();
+            
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            
+            // If this button is already playing, stop it
+            if (currentPlayingBtnId === btnId) {
+                stopAudio();
+                return;
+            }
+            
+            // Stop any other playing audio
             stopAudio();
-            requestWakeLock();
+            
+            // Update button state to playing
             currentPlayingBtnId = btnId;
-            const btnIcon = document.querySelector(`#${btnId} i`);
-            if(btnIcon) btnIcon.className = "fas fa-stop";
+            btn.innerHTML = '<i class="fas fa-stop"></i> <span>Stop</span>';
+            btn.classList.add('audio-btn-playing');
+            
+            // Cancel any pending speech
+            synth.cancel();
+            
+            // Create utterance
             const utter = new SpeechSynthesisUtterance(text);
-            utter.rate = parseFloat(document.getElementById('audioSpeed').value) || 1.0;
-            utter.onend = () => { if(btnIcon) btnIcon.className = "fas fa-volume-up"; currentPlayingBtnId = null; };
-            synth.speak(utter);
-        }
-
-        function toggleInsight(panelId, book, chap, v) {
-            const panel = document.getElementById(panelId);
-            const isOpen = panel.classList.contains('open');
-            document.querySelectorAll('.insight-panel').forEach(p => p.classList.remove('open'));
-            if (!isOpen) { 
-                // Get verse text if available
-                let verseText = "";
-                if (state.currentVerses && state.currentVerses.length > 0) {
-                    const verseData = state.currentVerses.find(vs => vs.verse === v);
-                    if (verseData) verseText = verseData.text;
-                }
-                panel.innerHTML = generateExpandedExplanation(book, chap, v, verseText).html; 
-                panel.classList.add('open'); 
+            utter.rate = Math.min(parseFloat(document.getElementById('audioSpeed')?.value || 1.0), 2.0);
+            
+            // Try to use a good voice
+            if (voices.length > 0) {
+                const preferredVoice = voices.find(voice => voice.lang.startsWith('en') && voice.name.includes('Google')) 
+                    || voices.find(voice => voice.lang.startsWith('en')) 
+                    || voices[0];
+                utter.voice = preferredVoice;
             }
-        }
-
-        async function fetchChapter() {
-            const savedIdx = localStorage.getItem(`selah_audio_pos_${state.book}_${state.chapter}`);
-            state.lastVersePlayedIndex = savedIdx ? parseInt(savedIdx) : 0;
-
-            showView('reader'); 
-            saveHistory();
-            updateURL(); 
-            updateChapterJumpDropdown();
-            document.getElementById('read-all-text').innerText = (state.lastVersePlayedIndex > 0) ? "Resume Reading" : "Read All";
-            document.getElementById('progressContainer').classList.remove('hidden');
             
-            const list = document.getElementById('verseList');
-            list.innerHTML = '<p class="text-center py-20 animate-pulse text-indigo-500 font-bold text-lg">Opening the Word...</p>';
+            // Handle speech end
+            utter.onend = () => {
+                stopAudio();
+            };
             
+            utter.onerror = (e) => {
+                console.error('Explanation audio error:', e);
+                stopAudio();
+                // Show user-friendly error
+                alert('Audio playback failed. Please try clicking the button again.');
+            };
+            
+            // Start speaking
             try {
-                const res = await fetch(`https://bible-api.com/${state.book}+${state.chapter}`);
-                const data = await res.json();
-                state.currentVerses = data.verses;
-                document.getElementById('readerTitle').innerText = data.reference;
-                const dropdown = document.getElementById('verseDropdown');
-                dropdown.innerHTML = '<option value="">Jump Verse</option>';
-                list.innerHTML = '';
-                data.verses.forEach(v => {
-                    const opt = document.createElement('option'); opt.value = `v-${v.verse}`; opt.innerText = `Verse ${v.verse}`; dropdown.appendChild(opt);
-                    const div = document.createElement('div'); div.id = `v-${v.verse}`; div.className = "p-4 transition-all duration-500 border-b border-slate-100 dark:border-slate-800/50 pb-8";
-                    div.innerHTML = `<div class="flex justify-between items-start gap-4"><div class="flex gap-4"><span class="text-indigo-400 font-bold text-sm mt-1">${v.verse}</span><p class="text-xl md:text-2xl leading-relaxed">${v.text}</p></div><button onclick="toggleInsight('insight-${v.verse}', '${state.book}', ${state.chapter}, ${v.verse})" class="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all flex-shrink-0" title="Explain verse"><i class="fas fa-lightbulb"></i></button></div><div id="insight-${v.verse}" class="insight-panel bg-white/40 dark:bg-slate-900/40 rounded-3xl p-6 mt-4"></div>`;
-                    list.appendChild(div);
-                });
-                if(!isReadingAll) window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (e) { list.innerHTML = 'Error loading chapter.'; }
-        }
-
-        function updateChapterJumpDropdown() {
-            const dropdown = document.getElementById('chapterJumpDropdown');
-            dropdown.innerHTML = '';
-            for(let i=1; i<=state.maxChapters; i++) {
-                const opt = document.createElement('option');
-                opt.value = i; opt.innerText = `Ch. ${i}`;
-                if(i === state.chapter) opt.selected = true;
-                dropdown.appendChild(opt);
+                synth.speak(utter);
+            } catch (e) {
+                console.error('Speak error:', e);
+                stopAudio();
+                alert('Could not play audio. Please ensure your browser supports speech synthesis and you have interacted with the page.');
             }
         }
 
-        function jumpToChapter(val) { stopAudio(); state.chapter = parseInt(val); fetchChapter(); }
-        function jumpToVerse(val) { if(val) document.getElementById(val).scrollIntoView({behavior:'smooth', block:'center'}); }
-        function navChapter(dir) {
-            stopAudio();
-            let nextChap = state.chapter + dir;
-            if (nextChap >= 1 && nextChap <= state.maxChapters) { state.chapter = nextChap; fetchChapter(); }
+        function toggleInsight(elementId, book, chapter, verse) {
+            const panel = document.getElementById(elementId);
+            if (!panel) return;
+            
+            const isOpen = panel.classList.contains('open');
+            
+            // Close all other panels
+            document.querySelectorAll('.insight-panel').forEach(p => p.classList.remove('open'));
+            
+            if (!isOpen) {
+                // Find verse text
+                let verseText = "";
+                if (state.currentVerses) {
+                    const v = state.currentVerses.find(v => v.verse === verse);
+                    if (v) verseText = v.text;
+                }
+                
+                // Generate explanation content
+                const { html } = generateExpandedExplanation(book, chapter, verse, verseText);
+                panel.innerHTML = html;
+                panel.classList.add('open');
+            }
+        }
+
+        function findMax(book) {
+            for (let section of Object.values(BIBLE_BOOKS)) {
+                for (let [name, chapters] of section) {
+                    if (name === book) return chapters;
+                }
+            }
+            return 1;
         }
 
         function renderLibrary() {
-            const setup = (list, id) => {
-                const g = document.getElementById(id); g.innerHTML = '';
-                list.forEach(([name, chaps]) => {
-                    const b = document.createElement('button');
-                    b.className = "p-4 glass-card rounded-2xl text-left font-bold text-sm hover:scale-105 transition-all flex items-center justify-between";
-                    b.innerHTML = `<span>${name}</span> <i class="fas fa-chevron-right text-[8px] opacity-30"></i>`;
-                    b.onclick = () => selectBook(name, chaps);
-                    g.appendChild(b);
-                });
-            };
-            setup(BIBLE_BOOKS.OT, 'otGrid'); setup(BIBLE_BOOKS.NT, 'ntGrid');
+            const otGrid = document.getElementById('otGrid');
+            const ntGrid = document.getElementById('ntGrid');
+            
+            otGrid.innerHTML = BIBLE_BOOKS.OT.map(([name, chapters]) => `
+                <button onclick="selectBook('${name}', ${chapters})" class="glass-card p-3 rounded-xl text-left hover:bg-indigo-500 hover:text-white transition-all group">
+                    <div class="font-bold text-sm">${name}</div>
+                    <div class="text-xs opacity-50 group-hover:opacity-80">${chapters} ch</div>
+                </button>
+            `).join('');
+            
+            ntGrid.innerHTML = BIBLE_BOOKS.NT.map(([name, chapters]) => `
+                <button onclick="selectBook('${name}', ${chapters})" class="glass-card p-3 rounded-xl text-left hover:bg-indigo-500 hover:text-white transition-all group">
+                    <div class="font-bold text-sm">${name}</div>
+                    <div class="text-xs opacity-50 group-hover:opacity-80">${chapters} ch</div>
+                </button>
+            `).join('');
         }
 
-        function selectBook(name, chaps) {
-            state.book = name; state.maxChapters = chaps;
-            showView('selection'); updateSteps(2);
-            document.getElementById('selectionTitle').innerText = name;
-            const grid = document.getElementById('selectionGrid'); grid.innerHTML = '';
-            for (let i = 1; i <= chaps; i++) {
-                const btn = document.createElement('button');
-                btn.className = "p-4 glass-card rounded-xl font-bold hover:bg-indigo-600 hover:text-white transition-all";
-                btn.innerText = i; btn.onclick = () => { state.chapter = i; fetchChapter(); };
-                grid.appendChild(btn);
+        function selectBook(book, maxChapters) {
+            state.book = book;
+            state.maxChapters = maxChapters;
+            document.getElementById('libraryView').classList.add('hidden');
+            document.getElementById('selectionView').classList.remove('hidden');
+            document.getElementById('selectionFlow').classList.remove('hidden');
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('selectionTitle').innerText = book;
+            
+            const grid = document.getElementById('selectionGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= maxChapters; i++) {
+                grid.innerHTML += `<button onclick="selectChapter(${i})" class="glass-card p-4 rounded-xl hover:bg-indigo-500 hover:text-white transition-all font-bold">${i}</button>`;
             }
         }
 
-        function renderHistory() {
-            const grid = document.getElementById('historyGrid'); if (history.length === 0) return;
-            document.getElementById('historySection').classList.remove('hidden');
-            grid.innerHTML = history.map(item => {
-                const radius = 15; const circ = 2 * Math.PI * radius;
-                return `<button onclick="state.book='${item.book}'; state.chapter=${item.chapter}; state.maxChapters=${findMax(item.book)}; fetchChapter()" class="flex-shrink-0 w-44 p-4 glass-card rounded-3xl text-left flex items-center gap-3">
-                    <div class="relative w-10 h-10"><svg class="w-full h-full"><circle class="text-slate-200 dark:text-slate-800" stroke-width="3" stroke="currentColor" fill="transparent" r="${radius}" cx="20" cy="20"/><circle class="text-indigo-500 progress-ring__circle" stroke-width="3" stroke-dasharray="${circ} ${circ}" stroke-dashoffset="${circ}" data-percent="${item.percent}" stroke-linecap="round" stroke="currentColor" fill="transparent" r="${radius}" cx="20" cy="20"/></svg><span class="absolute inset-0 flex items-center justify-center text-[8px] font-black">${item.percent}%</span></div>
-                    <div class="overflow-hidden"><p class="text-[10px] font-bold text-indigo-500 uppercase truncate mb-1">${item.book}</p><p class="text-xs font-black">Ch. ${item.chapter}</p></div></button>`;
-            }).join('');
-            requestAnimationFrame(() => {
-                document.querySelectorAll('.progress-ring__circle').forEach(c => {
-                    const p = c.getAttribute('data-percent'); const r = c.r.baseVal.value; const circ = 2 * Math.PI * r;
-                    c.style.strokeDashoffset = circ - (p / 100 * circ);
-                });
+        function selectChapter(chap) {
+            state.chapter = chap;
+            fetchChapter();
+        }
+
+        async function fetchChapter() {
+            stopAudio();
+            try {
+                const res = await fetch(`https://bible-api.com/${state.book}+${state.chapter}`);
+                const data = await res.json();
+                state.currentVerses = data.verses || [];
+                renderReader();
+                addToHistory();
+                window.location.hash = `${state.book}-${state.chapter}`;
+            } catch (e) {
+                console.error("Error fetching chapter", e);
+                alert("Failed to load chapter. Please try again.");
+            }
+        }
+
+        function renderReader() {
+            document.getElementById('libraryView').classList.add('hidden');
+            document.getElementById('selectionView').classList.add('hidden');
+            document.getElementById('selectionFlow').classList.add('hidden');
+            document.getElementById('readerView').classList.remove('hidden');
+            document.getElementById('progressContainer').classList.remove('hidden');
+            
+            document.getElementById('readerTitle').innerText = `${state.book} ${state.chapter}`;
+            
+            // Populate chapter dropdown
+            const chapterDropdown = document.getElementById('chapterJumpDropdown');
+            chapterDropdown.innerHTML = '';
+            for (let i = 1; i <= state.maxChapters; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.text = `Chapter ${i}`;
+                option.selected = i === state.chapter;
+                chapterDropdown.appendChild(option);
+            }
+            
+            // Populate verse dropdown
+            const verseDropdown = document.getElementById('verseDropdown');
+            verseDropdown.innerHTML = '<option value="">Jump Verse</option>';
+            
+            const verseList = document.getElementById('verseList');
+            verseList.innerHTML = '';
+            
+            state.currentVerses.forEach(v => {
+                // Add to dropdown
+                const option = document.createElement('option');
+                option.value = `v-${v.verse}`;
+                option.text = `Verse ${v.verse}`;
+                verseDropdown.appendChild(option);
+                
+                // Create verse element
+                const verseEl = document.createElement('div');
+                verseEl.id = `v-${v.verse}`;
+                verseEl.className = 'group p-6 rounded-2xl transition-all hover:bg-white/50 dark:hover:bg-slate-800/50';
+                verseEl.innerHTML = `
+                    <div class="flex gap-4">
+                        <span class="text-indigo-500 font-bold text-lg select-none">${v.verse}</span>
+                        <p class="text-lg leading-relaxed text-slate-800 dark:text-slate-200">${v.text}</p>
+                    </div>
+                    <div class="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="speakVerse(${v.verse})" class="text-xs bg-indigo-500/10 text-indigo-500 px-3 py-1.5 rounded-lg hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-volume-up"></i> Read
+                        </button>
+                        <button onclick="toggleInsight('insight-${v.verse}', '${state.book}', ${state.chapter}, ${v.verse})" class="text-xs bg-amber-500/10 text-amber-600 px-3 py-1.5 rounded-lg hover:bg-amber-500 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-lightbulb"></i> Explain
+                        </button>
+                    </div>
+                    <div id="insight-${v.verse}" class="insight-panel mt-2"></div>
+                `;
+                verseList.appendChild(verseEl);
             });
+            
+            // Update progress bar
+            updateProgress();
         }
 
-        function findMax(name) {
-            const all = [...BIBLE_BOOKS.OT, ...BIBLE_BOOKS.NT];
-            const book = all.find(b => b[0] === name);
-            return book ? book[1] : 50;
+        function speakVerse(verseNum) {
+            initAudio();
+            const v = state.currentVerses.find(v => v.verse === verseNum);
+            if (!v) return;
+            
+            stopAudio();
+            
+            synth.cancel();
+            const utter = new SpeechSynthesisUtterance(v.text);
+            utter.rate = Math.min(parseFloat(document.getElementById('audioSpeed')?.value || 1.0), 2.0);
+            
+            if (voices.length > 0) {
+                const preferredVoice = voices.find(voice => voice.lang.startsWith('en') && voice.name.includes('Google')) 
+                    || voices.find(voice => voice.lang.startsWith('en')) 
+                    || voices[0];
+                utter.voice = preferredVoice;
+            }
+            
+            synth.speak(utter);
         }
 
-        function saveHistory() {
-            const percent = Math.round((state.chapter / state.maxChapters) * 100);
-            history = history.filter(h => h.book !== state.book);
-            history.unshift({ book: state.book, chapter: state.chapter, percent });
-            localStorage.setItem('selah_history', JSON.stringify(history.slice(0, 5)));
+        function jumpToVerse(verseId) {
+            if (!verseId) return;
+            const el = document.getElementById(verseId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-indigo-500', 'rounded-2xl');
+                setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500'), 2000);
+            }
+        }
+
+        function jumpToChapter(chap) {
+            const chapter = parseInt(chap);
+            if (chapter && chapter !== state.chapter) {
+                state.chapter = chapter;
+                fetchChapter();
+            }
+        }
+
+        function navChapter(direction) {
+            const newChapter = state.chapter + direction;
+            if (newChapter >= 1 && newChapter <= state.maxChapters) {
+                state.chapter = newChapter;
+                fetchChapter();
+            }
+        }
+
+        function updateProgress() {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (scrollTop / docHeight) * 100;
+            document.getElementById('progressBar').style.width = `${Math.min(progress, 100)}%`;
+        }
+
+        function addToHistory() {
+            const entry = { book: state.book, chapter: state.chapter, timestamp: Date.now() };
+            history = history.filter(h => !(h.book === entry.book && h.chapter === entry.chapter));
+            history.unshift(entry);
+            if (history.length > 10) history = history.slice(0, 10);
+            localStorage.setItem('selah_history', JSON.stringify(history));
             renderHistory();
         }
 
-        async function handleSearch(val) { 
-            const res = await fetch(`https://bible-api.com/${val}`); 
-            const data = await res.json(); 
-            if(data.verses) { 
-                stopAudio(); 
-                state.book = data.verses[0].book_name; 
-                state.chapter = data.verses[0].chapter; 
-                state.maxChapters = findMax(state.book); 
-                fetchChapter(); 
-            } 
-        }
-        
-        function resetToLibrary() { 
-            stopAudio(); 
-            showView('library'); 
-            window.history.pushState(null, null, ' '); 
-            document.getElementById('selectionFlow').classList.add('hidden'); 
-            document.getElementById('progressContainer').classList.add('hidden'); 
+        function renderHistory() {
+            const section = document.getElementById('historySection');
+            const grid = document.getElementById('historyGrid');
+            
+            if (history.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            grid.innerHTML = history.map(h => `
+                <button onclick="loadHistory('${h.book}', ${h.chapter})" class="glass-card p-4 rounded-xl min-w-[140px] text-left hover:bg-indigo-500 hover:text-white transition-all">
+                    <div class="font-bold text-sm">${h.book}</div>
+                    <div class="text-xs opacity-70">Chapter ${h.chapter}</div>
+                </button>
+            `).join('');
         }
 
-        function showView(v) { ['library', 'selection', 'reader'].forEach(id => document.getElementById(id + 'View').classList.add('hidden')); document.getElementById(v + 'View').classList.remove('hidden'); }
-        function updateSteps(s) { document.getElementById('selectionFlow').classList.remove('hidden'); document.querySelectorAll('.step-pill').forEach((p, i) => p.classList.toggle('active', i + 1 === s)); }
-        function updateURL() { window.history.pushState(null, null, `#${encodeURIComponent(state.book)}-${state.chapter}`); }
+        function loadHistory(book, chapter) {
+            state.book = book;
+            state.chapter = chapter;
+            state.maxChapters = findMax(book);
+            fetchChapter();
+        }
 
-        window.onload = init;
+        function resetToLibrary() {
+            stopAudio();
+            document.getElementById('readerView').classList.add('hidden');
+            document.getElementById('selectionView').classList.add('hidden');
+            document.getElementById('selectionFlow').classList.add('hidden');
+            document.getElementById('progressContainer').classList.add('hidden');
+            document.getElementById('libraryView').classList.remove('hidden');
+            window.location.hash = '';
+        }
+
+        function handleSearch(query) {
+            if (!query.trim()) return;
+            
+            // Try to parse "Book Chapter:Verse" or "Book Chapter"
+            const match = query.match(/^([\w\s]+?)\s+(\d+)(?::(\d+))?$/i);
+            if (match) {
+                const bookName = match[1].trim();
+                const chapter = parseInt(match[2]);
+                const verse = match[3] ? parseInt(match[3]) : null;
+                
+                // Find book
+                let foundBook = null;
+                let maxChapters = 0;
+                
+                for (let section of Object.values(BIBLE_BOOKS)) {
+                    for (let [name, chapters] of section) {
+                        if (name.toLowerCase() === bookName.toLowerCase() || 
+                            name.toLowerCase().replace(/\s/g, '') === bookName.toLowerCase().replace(/\s/g, '')) {
+                            foundBook = name;
+                            maxChapters = chapters;
+                            break;
+                        }
+                    }
+                    if (foundBook) break;
+                }
+                
+                if (foundBook && chapter > 0 && chapter <= maxChapters) {
+                    state.book = foundBook;
+                    state.chapter = chapter;
+                    state.maxChapters = maxChapters;
+                    fetchChapter().then(() => {
+                        if (verse) {
+                            setTimeout(() => jumpToVerse(`v-${verse}`), 500);
+                        }
+                    });
+                    return;
+                }
+            }
+            
+            alert('Please use format: "Book Chapter" (e.g., "John 3") or "Book Chapter:Verse" (e.g., "John 3:16")');
+        }
+
+        // Scroll listener for progress bar
+        window.addEventListener('scroll', updateProgress);
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>

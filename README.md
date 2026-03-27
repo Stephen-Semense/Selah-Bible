@@ -19,13 +19,6 @@ In a world of surface-level reading, Selah provides the tools for a deep dive:
 ## 🤖 Selah AI Explanation Module
 The AI Explanation Module is the core "Deep Insight" feature of the Selah Bible. It transforms raw scripture into a modern, conversational study guide by providing contextually aware insights and quick-sharing tools. The explanations now match the AI-generated style, with the verse reference hyperlinked, key concepts highlighted with a subtle background, and a flowing narrative explanation that helps readers understand the spiritual significance of each verse.
 
-### ✨ Features at a Glance
-* **Smart Parsing:** Automatically identifies the Book, Chapter, and Verse to pull specific theological data.
-* **Key Concept Highlighting:** Visually isolates important themes (e.g., Creation, Faith, Grace) using the .key-concept styling.
-* **Quick Copy shortly:** A dedicated "Copy" button that sanitizes the AI output for immediate sharing.
-* **Synchronized Narration:** Integrated TTS that reads the explanation aloud with adjustable playback speeds.
-* **Dynamic Fallback:** Uses a date-seeded randomization logic to provide consistent, meaningful insights for verses not yet in the primary database.
-
 ### 🎧 Professional Audio Suite
 * **Multi-Layered Speech:** Listen to the scripture text or toggle audio for the **Expanded Explanations** separately.
 * **Auto-Advance & Scroll:** The reader highlights the active verse and automatically moves to the next chapter for a truly hands-free experience.
@@ -79,7 +72,7 @@ The Bible is a multi-functional library of books. This application is designed t
 
 ---
 
-## CORE FEATURES OF THIS APPLICATION
+## ✨ CORE FEATURES OF THIS APPLICATION
 This platform was engineered to bridge the gap between ancient wisdom and modern technology.
 
 * **Immersive Typography Engine**: We have implemented a dual-font system that reduces eye strain by using professionally spaced serif fonts for scripture and clean sans-serif for menus.

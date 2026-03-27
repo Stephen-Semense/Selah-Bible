@@ -1717,11 +1717,13 @@
             
             currentPlayingBtnId = null;
             document.querySelectorAll('.audio-playing-row').forEach(el => el.classList.remove('audio-playing-row')); 
+            
+            // FIXED: Hide stop and restart buttons, show read all button
             document.getElementById('btn-stop-all').classList.add('hidden');
-            document.getElementById('btn-restart-audio').classList.remove('hidden');
+            document.getElementById('btn-restart-audio').classList.add('hidden');
             document.getElementById('btn-read-all').classList.remove('hidden');
             
-            // FIXED: Show "Resume" if we have a saved position, otherwise "Read All"
+            // Show "Resume" if we have a saved position, otherwise "Read All"
             const savedPosition = localStorage.getItem(`selah_audio_pos_${state.book}_${state.chapter}`);
             const resumeIndex = savedPosition ? parseInt(savedPosition) : 0;
             const buttonText = resumeIndex > 0 ? `Resume (v${resumeIndex + 1})` : "Read All";
@@ -1822,6 +1824,7 @@
             await requestWakeLock();
             updateMediaSession(`${state.book} ${state.chapter}`);
             
+            // FIXED: Hide read all button, show restart and stop buttons
             document.getElementById('btn-read-all').classList.add('hidden');
             document.getElementById('btn-stop-all').classList.remove('hidden');
             document.getElementById('btn-restart-audio').classList.remove('hidden');
@@ -2227,7 +2230,7 @@
             }
         }
 
-        // FIXED: Update button text when rendering reader
+        // FIXED: Update button text when rendering reader - hide restart/stop initially
         function renderReader() {
             document.getElementById('libraryView').classList.add('hidden');
             document.getElementById('selectionView').classList.add('hidden');
@@ -2282,6 +2285,11 @@
                 `;
                 verseList.appendChild(verseEl);
             });
+            
+            // FIXED: Hide restart and stop buttons initially, only show Read All
+            document.getElementById('btn-restart-audio').classList.add('hidden');
+            document.getElementById('btn-stop-all').classList.add('hidden');
+            document.getElementById('btn-read-all').classList.remove('hidden');
             
             // FIXED: Set correct button text based on saved position
             const savedPosition = localStorage.getItem(`selah_audio_pos_${state.book}_${state.chapter}`);

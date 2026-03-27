@@ -41,7 +41,7 @@ The dashboard features **Progress Rings** that save your reading percentage loca
 
 ---
 
-# THE BIBLE COMPENDIUM: VERSIONS, USES, AND CORE FEATURES
+## THE BIBLE COMPENDIUM: VERSIONS, USES, AND CORE FEATURES
 
 ## INTRODUCTION TO BIBLE TRANSLATIONS
 The Bible was originally composed in Ancient Hebrew, Aramaic, and Koine Greek. Because languages change over centuries, modern scholars use different translation philosophies to bring these texts into English. Understanding these methods helps a reader choose the version that best fits their specific goals, whether for deep study or casual reading.

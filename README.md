@@ -29,7 +29,7 @@ The AI Explanation Module is the core "Deep Insight" feature of the Selah Bible.
 * **Chapter Jump Menu:** Quickly skip between chapters without leaving the reader view.
 * **Smart Search:** A global search bar that recognizes book names and references instantly.
 
-### ⭕ History & Progress Tracking
+### ⭕ Progress Tracking
 The dashboard features **Progress Rings** that save your reading percentage locally. See at a glance how much of a book you have explored and jump back in with one click.
 
 ---
